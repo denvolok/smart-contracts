@@ -1,0 +1,21 @@
+{
+  "include": ["./**/*.ts"],
+  "compilerOptions": {
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "module": "commonjs",
+    "declaration": true,
+    "sourceMap": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2020",
+    "baseUrl": "./",
+    "incremental": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "lib": ["ES2020"]
+ }
+}
