@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.9;
 
 import "./IERC20.sol";
 
 contract SilverCoin is IERC20 {
     uint8 public constant decimals = 8;
+    string public constant symbol = "SLV";
+
     uint256 public totalSupply;
     address private admin;
 
@@ -59,7 +62,7 @@ contract SilverCoin is IERC20 {
         balances[_from] -= _value;
         balances[_to] += _value;
         allowances[_from][msg.sender] -= _value;
-        
+
         emit Transfer(_from, _to, _value);
 
         return true;
