@@ -15,6 +15,7 @@ contract NFToken is IERC721, ERC165, IERC721Metadata {
     string private _name;
     string private _symbol;
     string private _tokenBaseURI;
+    address private _admin;
 
     mapping(uint256 => address) private _tokenToOwner;
     mapping(address => uint256) private _ownedTokensCount;
@@ -44,6 +45,7 @@ contract NFToken is IERC721, ERC165, IERC721Metadata {
         string memory tokenBaseURI_
     ) {
         _registerInterface(_INTERFACE_ID_ERC721);
+        _admin = msg.sender;
         _name = name_;
         _symbol = symbol_;
         _tokenBaseURI = tokenBaseURI_;
@@ -154,5 +156,16 @@ contract NFToken is IERC721, ERC165, IERC721Metadata {
         returns (string memory)
     {
         return string(abi.encodePacked(_tokenBaseURI, _tokenId.toString()));
+    }
+
+    function mint(uint256 _newTokenId, address _owner) external {
+        require(msg.sender == _admin);
+        require(_owner != address(0));
+        require(_tokenToOwner[_newTokenId] == address(0));
+
+        _tokenToOwner[_newTokenId] = _owner;
+        _ownedTokensCount[_owner] += 1;
+
+        require(_checkOnERC721Received(address(0), _owner, _newTokenId, ""));
     }
 }
