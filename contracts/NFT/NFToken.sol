@@ -95,13 +95,31 @@ contract NFToken is IERC721, ERC165, IERC721Metadata {
         emit Transfer(_from, _to, _tokenId);
     }
 
-    function approve(address _approved, uint256 _tokenId) external {}
+    function approve(address _approved, uint256 _tokenId) external {
+        address owner = _tokenToOwner[_tokenId];
+        require(msg.sender == owner || _ownerToOperators[owner][msg.sender] == true);
 
-    function setApprovalForAll(address _operator, bool _aproved) external {}
+        _tokenToApproval[_tokenId] = _approved;
+        emit Approval(owner, _approved, _tokenId);
+    }
 
-    function getApproved(uint256 _tokenId) external view returns (address) {}
+    function setApprovalForAll(address _operator, bool _approved) external {
+        _ownerToOperators[msg.sender][_operator] = _approved;
+        emit ApprovalForAll(msg.sender, _operator, _approved);
+    }
 
-    function isApprovedForAll(address _owner, address _operator) external view returns (bool) {}
+    function getApproved(uint256 _tokenId)
+        external
+        view
+        isValidNFToken(_tokenId)
+        returns (address)
+    {
+        return _tokenToApproval[_tokenId];
+    }
+
+    function isApprovedForAll(address _owner, address _operator) external view returns (bool) {
+        return _ownerToOperators[_owner][_operator];
+    }
 
     function name() external view returns (string memory) {
         return _name;
@@ -121,7 +139,7 @@ contract NFToken is IERC721, ERC165, IERC721Metadata {
             IERC721Receiver(_to).onERC721Received(msg.sender, _from, _tokenId, _data) ==
                 IERC721Receiver.onERC721Received.selector
         );
-        
+
         return true;
     }
 
