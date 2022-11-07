@@ -16,7 +16,7 @@ contract CrowdFunding {
     }
 
     mapping(uint256 => Campaign) public campaigns;
-    mapping(uint256 => mapping(address => uint256)) public contributors;
+    mapping(uint256 => mapping(address => uint256)) public funders;
 
     event Launch(
         uint256 campaignId,
@@ -26,12 +26,12 @@ contract CrowdFunding {
         uint32 endAt
     );
     event Cancel(uint256 campaignId);
-    event Contribution(uint256 campaignId, address indexed contributor, uint256 amount);
+    event Fund(uint256 campaignId, address indexed funder, uint256 amount);
     /// NOTE: funds can be withdrawn on a running campaign after the goal reached
-    event Withdrawal(uint256 campaignId, address indexed contributor, uint256 amount);
+    event Withdrawal(uint256 campaignId, address indexed funder, uint256 amount);
     event GoalReached(uint256 campaignId);
     event Claim(uint256 campaignId, address indexed owner);
-    event Refund(uint256 campaignId, address indexed contributor);
+    event Refund(uint256 campaignId, address indexed funder);
 
     constructor() {}
 
@@ -48,12 +48,15 @@ contract CrowdFunding {
     modifier isRunningCampaign(uint256 _campaignId) {
         Campaign storage campaign = campaigns[_campaignId];
 
-        require(campaign.startAt <= block.timestamp && campaign.endAt >= block.timestamp);
+        require(
+            campaign.startAt <= block.timestamp && campaign.endAt >= block.timestamp,
+            "campaign not started yet"
+        );
         _;
     }
 
     modifier isFinishedCampaign(uint256 _campaignId) {
-        require(campaigns[_campaignId].endAt <= block.timestamp);
+        require(campaigns[_campaignId].endAt <= block.timestamp, "campaign not finished");
         _;
     }
 
@@ -69,7 +72,7 @@ contract CrowdFunding {
             "invalid _campaignId"
         );
         require(_startAt > block.timestamp, "_startAt < now");
-        require(_endAt < CAMPAIGN_PERIOD_LIMIT, "_endAt > max duration");
+        require(_endAt < block.timestamp + CAMPAIGN_PERIOD_LIMIT, "_endAt > max duration");
 
         campaigns[_campaingId] = Campaign({
             owner: payable(msg.sender),
@@ -95,7 +98,7 @@ contract CrowdFunding {
         emit Cancel(_campaignId);
     }
 
-    function contribute(uint256 _campaignId)
+    function fund(uint256 _campaignId)
         external
         payable
         isExistingCampaign(_campaignId)
@@ -103,8 +106,10 @@ contract CrowdFunding {
     {
         Campaign storage campaign = campaigns[_campaignId];
 
-        contributors[_campaignId][msg.sender] += msg.value;
+        funders[_campaignId][msg.sender] += msg.value;
         campaign.fundingAmount += msg.value;
+
+        emit Fund(_campaignId, msg.sender, msg.value);
 
         if (campaign.fundingAmount >= campaign.fundingGoal) {
             emit GoalReached(_campaignId);
@@ -116,10 +121,10 @@ contract CrowdFunding {
         isExistingCampaign(_campaignId)
         isRunningCampaign(_campaignId)
     {
-        require(contributors[_campaignId][msg.sender] >= _amount, "amount exceeds contribution");
+        require(funders[_campaignId][msg.sender] >= _amount, "amount exceeds contribution");
 
         campaigns[_campaignId].fundingAmount -= _amount;
-        contributors[_campaignId][msg.sender] -= _amount;
+        funders[_campaignId][msg.sender] -= _amount;
         payable(msg.sender).transfer(_amount);
 
         emit Withdrawal(_campaignId, msg.sender, _amount);
@@ -147,12 +152,12 @@ contract CrowdFunding {
         isExistingCampaign(_campaignId)
         isFinishedCampaign(_campaignId)
     {
-        uint256 amount = contributors[_campaignId][msg.sender];
+        uint256 amount = funders[_campaignId][msg.sender];
 
         require(_isCampaignSucceeded(_campaignId) == false, "campaign succeeded");
         require(amount > 0, "nothing to refund");
 
-        contributors[_campaignId][msg.sender] = 0;
+        funders[_campaignId][msg.sender] = 0;
         payable(msg.sender).transfer(amount);
 
         emit Refund(_campaignId, msg.sender);
